@@ -1,8 +1,4 @@
-# Spotify Song Popularity Analysis**
-
----
-
-## 🎧 Introduction
+# 🎧 Spotify Song Popularity Analysis**
 
 ### 📌 Background
 
@@ -111,7 +107,3 @@ Spotify provides measurable **audio features** such as energy, danceability, and
 ## 📚 References
 
 * Saniczka, A. *Top Spotify Songs in 73 Countries (Daily Updated)*. Kaggle, 2024. [Link](https://www.kaggle.com/datasets/asaniczka/top-spotify-songs-in-73-countries-daily-updated)
-
----
-
-Let me know if you’d like a PDF version of this README or want it tailored for GitHub, including badges and a table of contents.
