@@ -1,0 +1,249 @@
+---
+title: "Assignment Freeform Assignment 3 Final: Linear Models"
+author: "Madhumitha Sridhar"
+format:
+  pdf:
+    echo: true
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+# loading needed libraries
+library(tidyverse)
+```
+
+## Introduction
+
+### Background
+
+Music streaming has transformed how people discover and consume music globally, with streaming platforms like Spotify serving over 500 million users across 180+ markets. Understanding the factors that influence song popularity on streaming platforms is crucial for artists, record labels, and the music industry overall as they navigate an increasingly competitive digital landscape.
+
+Spotify quantifies audio features such as energy, danceability, and valence for every track; these measurable characteristics can serve as predictors of commercial success. By examining the relationship between these audio features and popularity metrics, we can better understand the patterns that drive musical success in this digital age.
+
+### Research Questions
+
+**Question 1**: Is there a relationship between a song's energy level and its popularity on Spotify?
+
+**Question 2**: How do energy level and danceability together predict a song's popularity on Spotify?
+
+Both of these questions require us to conduct a descriptive analysis, with the first question using simple linear regression and the second requiring multiple linear regression.
+
+### Population, Sample, and Data Source
+
+1.  **Population**: All songs on Spotify
+
+2.  **Sample**: Top 50 songs from 73 countries
+
+3.  **Data Source**: This dataset was collected from Spotify's API (by this user on Kaggle: ASANICZKA) and contains daily updated information on the top 50 songs from 73 countries.
+
+Since this is a sample from the broader population of all Spotify songs, we will use confidence intervals for estimation
+
+### Data Preparation
+
+First, we will start off by loading and examining the data:
+
+```{r}
+spotify_data <- read_csv("universal_top_spotify_songs.csv")
+```
+
+```{r}
+# basic data exploration
+glimpse(spotify_data)
+summary(spotify_data)
+```
+
+Taking a glimpse at our data, we can see a lot of NA values in the Country column. Since our research questions focus on the relationship between audio features (energy, danceability) and popularity, the country variable isn't relevant to the models we will be building. Therefore, let's remove it during our data cleaning:
+
+```{r}
+# removing country column since it's not needed for our analysis
+spotify_data <- spotify_data %>%
+  select(-country)
+```
+
+```{r}
+# let's now check that this column has been removed
+glimpse(spotify_data)
+```
+
+With our data prepped, we can move forward with our analysis!
+
+### Question 1: Energy and Popularity (Simple Linear Regression)
+
+#### Data Visualization
+
+```{r}
+# taking a random sample of your data for plotting
+spotify_sample <- spotify_data %>%
+  slice_sample(n = 1000) 
+
+ggplot(spotify_sample, aes(x = energy, y = popularity)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = TRUE, color = "red") +
+  labs(title = "Relationship Between Song Energy and Popularity",
+       subtitle = "Random sample of 1,000 songs",
+       x = "Energy Level",
+       y = "Popularity Score") +
+  theme_minimal()
+```
+
+Since we are dealing with a large dataset (containing hundreds of thousands of observations), plotting all the data points results in severe overplotting that obscures patterns in the data. To create a clearer visualization while maintaining the integrity of our analysis, we can display a random sample of 1000 songs in the scatterplot.
+
+Our scatterplot here shows a weak negative relationship between song energy and popularity, as indicated by the slightly downward-sloping red regression line. The relationship appears approximately linear, making linear regression appropriate for this analysis. Although most songs cluster around moderate to high energy levels and popularity scores above 60, there is considerable variability across the data. The trend suggests that higher energy does not necessarily lead to greater popularity. In fact, it may be slightly associated with lower popularity.
+
+#### Model Fitting and Justification
+
+##### Model Choice Justification
+
+We will be using ordinary least squares (OLS) rather than least absolute deviations (LAD) because our large sample size makes OLS robust to outliers, and OLS provides better interpretability for our descriptive analysis goals. Simple linear regression is appropriate since we're examining the relationship between one explanatory variable (energy) and popularity.
+
+```{r}
+# fitting the simple linear regression model
+model1 <- lm(popularity ~ energy, data = spotify_data)
+summary(model1)
+```
+
+```{r}
+confint(model1)
+```
+
+##### Model Choice Justification
+
+Our simple linear regression results reveal a statistically significant but practically negligible relationship between energy and popularity. Our model estimates that for every 1-unit increase in energy level, popularity decreases by an average of 2.15 points (95% CI: -2.28 to -2.02, p \< 0.001). While this negative relationship is statistically significant because of our large sample size, the effect is basically meaningless. Energy explains only 0.05% of the variation in popularity (R-squared = 0.0005277), meaning that even a song moving from minimum to maximum energy would only see about a 2-point decrease in popularity on the 0-100 scale. This weak explanatory power suggests that energy alone is insufficient for predicting song popularity, and other factors likely play much more substantial roles in determining musical success on streaming platforms.
+
+### Question 2: Energy, Danceability, and Popularity (Multiple Linear Regression)
+
+For our multiple regression model, we selected danceability as the second explanatory variable alongside energy for several reasons. First, both energy and danceability are fundamental characteristics that music industry professionals often consider when evaluating commercial potential; energy captures the intensity and power of a song, while danceability measures how suitable a track is for dancing based on tempo, rhythm stability, and beat strength. Second, these variables represent different but complementary aspects of musical appeal that could work together to influence popularity. Finally, energy and danceability are conceptually distinct enough that they should provide different information about song characteristics, while still being related enough to potentially interact in meaningful ways.
+
+#### Data Visualization
+
+We can use two visualization approaches to examine our multiple regression relationships. Our first approach includes individual scatterplots which show each of our predictor's separate relationship with popularity. Our second approach displays all three variables together using color coding, providing us with insight into how energy and danceability jointly relate to song popularity.
+
+```{r}
+# energy vs popularity
+p1 <- ggplot(spotify_sample, aes(x = energy, y = popularity)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = TRUE, color = "red") +
+  labs(title = "Energy vs Popularity",
+       x = "Energy",
+       y = "Popularity") +
+  theme_minimal()
+
+p2 <- ggplot(spotify_sample, aes(x = danceability, y = popularity)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = TRUE, color = "blue") +
+  labs(title = "Danceability vs Popularity",
+       x = "Danceability",
+       y = "Popularity") +
+  theme_minimal()
+
+# combining plots
+library(patchwork)
+p1 + p2
+```
+
+Earlier when we plotted energy level vs. popularity (also shown in the left), we found that there is a weak negative relationship between these two variables. The plot on the right also shows a weak negative relationship between danceability and popularity, with a similarly flat trend line. However, the danceability trend line appears to sit slightly higher than the energy trend line, suggesting that danceability may have a marginally more favorable baseline association with popularity compared to energy. Both relationships demonstrate considerable scatter around their respective trend lines, indicating that neither audio feature alone strongly predicts song popularity.
+
+```{r}
+# taking a random sample of your data for plotting
+spotify_sample <- spotify_data %>%
+  slice_sample(n = 1000)
+
+ggplot(spotify_sample, aes(x = energy, y = popularity, color = danceability)) +
+  geom_point(alpha = 0.7, size = 1.2) +
+  scale_color_viridis_c(name = "Danceability") +
+  labs(title = "Song Popularity by Energy and Danceability",
+       subtitle = "Random sample of 1,000 songs",
+       x = "Energy Level",
+       y = "Popularity Score") +
+  theme_minimal()
+```
+
+Our combined visualization shows all three variables simultaneously, with energy on the x-axis, popularity on the y-axis, and danceability represented by color (yellow-green = high danceability, dark blue = low danceability). Our plot reveals that songs are distributed across the full range of energy and danceability combinations, with most songs clustering in the moderate-to-high energy range. Notably, there doesn't appear to be a strong clustering pattern based on danceability levels; both high-danceability songs (yellow-green) and low-danceability songs (dark blue) are found at similar popularity levels across different energy ranges. This suggests that the combination of energy and danceability may not create distinct patterns for predicting popularity, reinforcing that these audio features may have limited explanatory power for song success.
+
+#### Model Fitting and Justification
+
+##### Model Choice Justification
+
+We will be using ordinary least squares (OLS) again to maintain consistency and ensure interpretability. Our multiple linear regression model will include both energy and danceability as explanatory variables to examine their combined effect on song popularity.
+
+```{r}
+# fitting multiple linear regression model
+model2 <- lm(popularity ~ energy + danceability, data = spotify_data)
+summary(model2)
+```
+
+```{r}
+confint(model2)
+```
+
+Our multiple linear regression results show statistically significant relationships for both predictors, though with limited practical impact. Our model estimates that for every 1-unit increase in energy level (holding danceability constant), popularity decreases by an average of 0.92 points (95% CI: -1.05 to -0.78, p \< 0.001). More notably, for every 1-unit increase in danceability (holding energy constant), popularity decreases by an average of 5.38 points (95% CI: -5.54 to -5.23, p \< 0.001), making danceability a stronger predictor than energy.
+
+While both relationships are highly statistically significant due to the massive sample size, the combined model explains only 0.275% of the variation in popularity (R-squared = 0.00275). In other words, this means that even if we know both the energy and danceability of a song perfectly, we can only explain about one-quarter of one percent of why songs differ in popularity; the remaining 99.7% is determined by other factors. The intercept suggests that a hypothetical song with zero energy and zero danceability would have a popularity score of approximately 80, though this extrapolation falls outside the realistic range of the data. Despite the statistical significance, the extremely low R-squared value indicates that energy and danceability together provide minimal explanatory power for predicting song popularity, suggesting that other unmeasured factors play far more substantial roles in determining musical success.
+
+### Model Assumptions and Limitations
+
+#### Linearity Assessment
+
+Both models show reasonably linear relationships without strongly curved patterns, which makes linear regression appropriate for addressing our descriptive questions. While the relationships are weak, the scatterplots follow approximately straight-line trends with consistent variance, though some increased scatter occurs in certain ranges.
+
+#### Residual Analysis
+
+To test model assumptions a bit more thoroughly, we can examine residual plots:
+
+```{r}
+# for the simple linear regression model (model1)
+model1_sample <- lm(popularity ~ energy, data = spotify_sample)
+model2_sample <- lm(popularity ~ energy + danceability, data = spotify_sample)
+
+# simple linear regression model diagnostics
+plot(model1_sample, which = 1)  # residuals vs Fitted
+plot(model1_sample, which = 2)  # Q-Q plot for normality
+
+# multiple linear regression model diagnostics  
+plot(model2_sample, which = 1)  # residuals vs Fitted
+plot(model2_sample, which = 2)  # Q-Q plot for normality
+```
+
+1.  **Residuals vs. Fitted values**: Residuals vs. Fitted values: Show random scatter around zero with no clear patterns, confirming linearity and constant variance assumptions.
+2.  **Q-Q plots**: Residuals showed deviations from normality with heavy tails.
+
+These plots largely confirm the appropriateness of linear modeling by visually checking for assumption violations like non-linearity, heteroscedasticity, or non-normality.
+
+#### Model Appropriateness Assessment
+
+While linear regression was technically appropriate given our data structure and research goals, the models’ extremely low R-squared values suggest that audio features alone explain little about what drives song popularity.
+
+### Conclusion
+
+#### Question 1 Results
+
+Based on our simple linear regression analysis, energy has a statistically significant but practically negligible negative effect on popularity. Specifically, for every 1-unit increase in energy level, popularity decreases by an average of 2.15 points (95% CI: -2.28 to -2.02, p \< 0.001). However, this relationship explains virtually none of the variation in song success, with energy accounting for only 0.053% of the variance in popularity. This finding suggests that while there is a detectable relationship between energy and popularity, it is far too weak to be useful for practical prediction or decision-making.
+
+#### Question 2 Results
+
+Our multiple linear regression analysis shows that adding danceability provides minimal improvement in explaining song popularity. Energy decreases popularity by 0.92 points per unit increase (95% CI: -1.05 to -0.78, p \< 0.001), while danceability has a stronger negative effect, decreasing popularity by 5.38 points per unit increase (95% CI: -5.54 to -5.23, p \< 0.001). Together, both variables explain only 0.275% of the variation in popularity, making them ineffective predictors of song success despite their statistical significance. The model improvement from adding danceability is statistically significant but practically meaningless.
+
+### Validity Assessment
+
+#### External Validity
+
+This sample represents top songs from 73 countries, but may not generalize to all songs on Spotify or other music platforms, as it only includes already-popular tracks. To improve external validity, we should include songs that became viral through different pathways (social media trends, playlist features, organic discovery) rather than just chart-toppers, and examine songs across different time periods to account for changing trends in what drives popularity. Additionally, expanding to other platforms where songs go viral (TikTok, YouTube, etc.) would enhance generalizability of our findings about popular music characteristics.
+
+#### Internal Validity
+
+Since this is observational data, we cannot establish causation between audio features and popularity. Confounding variables like artist popularity, marketing, release timing, playlist placements, and/or social media presence could influence both song features and popularity. To improve internal validity, we should control for additional variables such as artist follower count, label size, marketing spend, and release strategy. Alternatively, examining naturally occurring experiments (such as comparing similar songs with different audio features from the same artist) could help isolate causal effects.
+
+#### Construct Validity
+
+Spotify's popularity measure may not capture all aspects of musical success, such as radio play, physical sales, cultural impact, or longevity. Additionally, algorithmically-determined song features like "energy" and "danceability" may not align with human perception of these characteristics. To improve construct validity, we should validate Spotify's popularity metric against multiple success measures (chart positions, streaming revenue, social media engagement) and compare algorithmic audio features with human ratings of the same characteristics to ensure they measure what we intend.
+
+### Implications and Future Research
+
+These findings, supported by the confidence intervals showing consistent negative effects with minimal explanatory power, suggest that music industry professionals should not rely solely on audio characteristics like energy or danceability when predicting song success. The extremely low predictive power indicates that marketing strategies, artist development, cultural positioning, and timing may be far more crucial investments than optimizing specific audio features. However, this doesn't mean audio features are irrelevant - they may play important roles in specific contexts or interact with unmeasured variables in complex ways.
+
+Future directions for this analysis should incorporate variables like artist popularity, social media presence, playlist placements, release timing, and genre classifications to better understand the multifaceted nature of streaming success. Additionally, examining regional differences, temporal trends, platform-specific patterns, and the role of recommendation algorithms could provide deeper insights into what drives musical popularity in the digital age.
+
+## References
+
+Saniczka, A. "Top Spotify Songs in 73 Countries (Daily Updated)." Kaggle, 2024. https://www.kaggle.com/datasets/asaniczka/top-spotify-songs-in-73-countries-daily-updated
